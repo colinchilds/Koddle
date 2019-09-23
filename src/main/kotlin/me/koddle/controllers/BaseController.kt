@@ -1,7 +1,7 @@
-package dev.cchilds.controllers
+package me.koddle.controllers
 
-import dev.cchilds.tools.DatabaseAccess
-import dev.cchilds.tools.RequestHelper
+import me.koddle.tools.DatabaseAccess
+import me.koddle.tools.RequestHelper
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 

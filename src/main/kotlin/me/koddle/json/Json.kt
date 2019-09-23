@@ -1,4 +1,4 @@
-package dev.cchilds.json
+package me.koddle.json
 
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject

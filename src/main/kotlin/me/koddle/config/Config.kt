@@ -1,4 +1,4 @@
-package dev.cchilds.config
+package me.koddle.config
 
 import io.vertx.config.ConfigRetriever
 import io.vertx.core.Vertx

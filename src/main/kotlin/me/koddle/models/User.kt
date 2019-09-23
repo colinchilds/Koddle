@@ -1,4 +1,4 @@
-package dev.cchilds.models
+package me.koddle.models
 
 class User {
     companion object {

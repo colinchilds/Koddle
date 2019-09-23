@@ -1,4 +1,4 @@
-package dev.cchilds.tools
+package me.koddle.tools
 
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI

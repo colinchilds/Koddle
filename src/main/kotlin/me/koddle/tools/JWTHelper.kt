@@ -1,6 +1,6 @@
-package dev.cchilds.tools
+package me.koddle.tools
 
-import dev.cchilds.exceptions.AuthorizationException
+import me.koddle.exceptions.AuthorizationException
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
