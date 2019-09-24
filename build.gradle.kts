@@ -42,6 +42,11 @@ dependencies {
 }
 
 tasks {
+    register("getHomeDir")  {
+        doLast{
+            println(gradle.gradleHomeDir)
+        }
+    }
     compileKotlin {
         kotlinOptions.jvmTarget = "1.8"
     }
