@@ -110,9 +110,7 @@ object SwaggerRouter : KoinComponent {
                     method.callWithParams(controller, context, params)
                 }
             } catch (ex: TimeoutCancellationException) {
-                replyWithError(
-                    context,
-                    TimeoutException("Timed out waiting for response", jArr(opId), ex)
+                replyWithError(context, TimeoutException("Timed out waiting for response", jArr(opId), ex)
                 )
             } catch (ex: Exception) {
                 replyWithError(context, ex)

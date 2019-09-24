@@ -22,10 +22,7 @@ open class ResponseCodeException(
                 FORBIDDEN -> return ForbiddenException(errorMessage, details)
                 NOT_FOUND -> return ModelNotFoundException(errorMessage, details)
                 TOO_MANY_REQUESTS -> return TooManyRequestsException(errorMessage, details)
-                UNAVAILABLE, BAD_GATEWAY, GATEWAY_TIMEOUT -> return UnavailableException(
-                    errorMessage,
-                    details
-                )
+                UNAVAILABLE, BAD_GATEWAY, GATEWAY_TIMEOUT -> return UnavailableException(errorMessage, details)
                 else -> return ServiceException(errorMessage, details)
             }
         }
