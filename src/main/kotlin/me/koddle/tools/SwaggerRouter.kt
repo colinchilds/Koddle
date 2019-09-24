@@ -207,6 +207,9 @@ object SwaggerRouter : KoinComponent {
                 !is Unit -> {
                     context.response().end(response.toString())
                 }
+                else -> {
+                    context.response().end()
+                }
             }
         }
     }
