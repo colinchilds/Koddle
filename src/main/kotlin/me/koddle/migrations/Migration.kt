@@ -1,13 +1,9 @@
 package me.koddle.migrations
 
-import me.koddle.config.Config
-import io.vertx.core.Vertx
+import io.vertx.core.json.JsonObject
 import org.flywaydb.core.Flyway
 
-fun main() {
-    // Create the Flyway instance and point it to the database
-    val vertx = Vertx.vertx()
-    val dbConfig = Config.config(vertx)
+fun migrate(dbConfig: JsonObject) {
     val url = "jdbc:postgresql://${dbConfig.getString("SERVICE_DB_HOST")}:${dbConfig.getInteger("SERVICE_DB_PORT")}/${dbConfig.getString("SERVICE_DB_NAME")}"
     val user = dbConfig.getString("SERVICE_DB_USER")
     val password = dbConfig.getString("SERVICE_DB_PASSWORD")
@@ -16,6 +12,4 @@ fun main() {
         val flyway = Flyway.configure().placeholders(mutableMapOf("schema" to it)).schemas(it).dataSource(url, user, password).load()
         flyway.migrate()
     }
-
-    vertx.close()
 }
