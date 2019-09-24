@@ -1,6 +1,6 @@
-package dev.cchilds.exceptions
+package me.koddle.exceptions
 
-import dev.cchilds.exceptions.HTTPStatusCode.*
+import me.koddle.exceptions.HTTPStatusCode.*
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.core.json.Json
@@ -22,7 +22,10 @@ open class ResponseCodeException(
                 FORBIDDEN -> return ForbiddenException(errorMessage, details)
                 NOT_FOUND -> return ModelNotFoundException(errorMessage, details)
                 TOO_MANY_REQUESTS -> return TooManyRequestsException(errorMessage, details)
-                UNAVAILABLE, BAD_GATEWAY, GATEWAY_TIMEOUT -> return UnavailableException(errorMessage, details)
+                UNAVAILABLE, BAD_GATEWAY, GATEWAY_TIMEOUT -> return UnavailableException(
+                    errorMessage,
+                    details
+                )
                 else -> return ServiceException(errorMessage, details)
             }
         }

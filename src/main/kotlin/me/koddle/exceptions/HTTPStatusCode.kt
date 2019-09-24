@@ -1,4 +1,4 @@
-package dev.cchilds.exceptions
+package me.koddle.exceptions
 
 enum class HTTPStatusCode(private val statusCode: Int) {
     OK(200),

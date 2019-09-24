@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package dev.cchilds.service
+package me.koddle.service
 
 import com.google.common.reflect.ClassPath
 import org.koin.core.definition.*
@@ -16,7 +16,7 @@ fun buildAutoModule(verticle: Class<*>): Module {
     val classes = getProjectClasses(verticle)
     return module {
         for (kclass in classes) {
-            single(kclass) { create(kclass, this)}
+            single(kclass) { create(kclass, this) }
         }
     }
 }

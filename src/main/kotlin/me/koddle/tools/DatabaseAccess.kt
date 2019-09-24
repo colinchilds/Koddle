@@ -1,6 +1,6 @@
-package dev.cchilds.tools
+package me.koddle.tools
 
-import dev.cchilds.exceptions.ModelNotFoundException
+import me.koddle.exceptions.ModelNotFoundException
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.core.shareddata.impl.ClusterSerializable

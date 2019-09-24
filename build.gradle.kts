@@ -7,7 +7,7 @@ repositories {
     jcenter()
 }
 
-group = "dev.cchilds.koddle"
+group = "me.koddle"
 version = "1.0-SNAPSHOT"
 
 val vertxVersion = "3.8.1"

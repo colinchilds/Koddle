@@ -1,8 +1,8 @@
-package dev.cchilds.repositories
+package me.koddle.repositories
 
-import dev.cchilds.exceptions.ModelNotFoundException
-import dev.cchilds.json.jArr
-import dev.cchilds.json.jObj
+import me.koddle.exceptions.ModelNotFoundException
+import me.koddle.json.jArr
+import me.koddle.json.jObj
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.sqlclient.preparedQueryAwait
