@@ -9,6 +9,7 @@ class User {
 
     class Role {
         companion object {
+            val USER = "USER"
             val ADMIN = "ADMIN"
         }
     }

@@ -118,11 +118,17 @@ object SwaggerRouter : KoinComponent {
         }
     }
 
-    private fun replyWithError(context: RoutingContext, failure: Throwable) {
+    private fun replyWithError(context: RoutingContext, failure: Throwable?) {
         val response = context.response()
-        if (failure is ResponseCodeException) {
-            response.putHeader("content-type", "application/json")
+        if (failure == null) {
+            if (context.statusCode() <= 0)
+                response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end()
+            else
+                response.setStatusCode(context.statusCode()).end()
+            return
+        } else if (failure is ResponseCodeException) {
             response
+                .putHeader("content-type", "application/json")
                 .setStatusCode(failure.statusCode.value())
                 .end(failure.asJson().encode())
         } else if (context.statusCode() <= 0) {
