@@ -15,7 +15,7 @@ typealias RequiredRoles = Map<String, List<String>>
 
 class JWTHelper(val config: JsonObject, val vertx: Vertx) {
 
-    val EXPIRATION_MILLIS = 1000 * 60 * 60 * 30
+    val EXPIRATION_MILLIS = 1000 * 60 * 30
 
     val authProvider = JWTAuth.create(vertx, JWTAuthOptions()
         .addPubSecKey(

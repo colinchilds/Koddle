@@ -25,7 +25,7 @@ class DatabaseAccess {
         pool = PgPool.pool(vertx, connectOptions, poolOptions)
     }
 
-    suspend fun <T : ClusterSerializable> getConnection(dbAction: suspend (SqlClient) -> T): T {
+    suspend fun <T> getConnection(dbAction: suspend (SqlClient) -> T): T {
         var result: T
         val connection = pool.getConnectionAwait()
         try {
@@ -42,7 +42,7 @@ class DatabaseAccess {
         return result
     }
 
-    suspend fun <T : ClusterSerializable> getTransaction(dbAction: suspend (SqlClient) -> T): T {
+    suspend fun <T> getTransaction(dbAction: suspend (SqlClient) -> T): T {
         var result: T
         val connection = pool.getConnectionAwait()
         val transaction = connection.begin()
