@@ -79,8 +79,14 @@ object SwaggerRouter : KoinComponent {
                             ?: throw RuntimeException("Method $methodName not found for controller $controllerName")
 
                         val route = router.route(HttpMethod.valueOf(verb.name), convertedPath)
-                        if (roles?.isNotEmpty() == true)
-                            route.handler(JWTAuthHandler.create(jwtHelper.authProvider))
+                        if (roles?.isNotEmpty() == true) {
+                            route.handler { context ->
+                                val token = context.getCookie("identityToken")
+                                if (token != null && token.value != null)
+                                    context.request().headers().set("authorization", "Bearer ${token.value}")
+                                context.next()
+                            }.handler(JWTAuthHandler.create(jwtHelper.authProvider))
+                        }
                         route.handler(
                             OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
                         )
