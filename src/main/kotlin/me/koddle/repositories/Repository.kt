@@ -12,6 +12,12 @@ import me.koddle.json.jArr
 import me.koddle.json.jObj
 
 
+/**
+ * TODO: Find a way to write the repository so that its clients
+ *       don't have to get a connection. To have to get a connection
+ *       for every menial task is cumbersome and does not follow
+ *       the DRY principle.
+ */
 abstract class Repository(val table: String, val schema: String) {
 
     val tableName = "$schema.$table"

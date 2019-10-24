@@ -33,9 +33,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
 fun Router.route(swaggerFile: OpenAPI, controllerPackage: String) {
-    route()
-        .produces("application/json")
-        .handler(BodyHandler.create().setBodyLimit(5120000))
+    route().produces("application/json").handler(BodyHandler.create().setBodyLimit(5120000))
 
     SwaggerRouter.addRoutesFromSwaggerFile(this, swaggerFile, controllerPackage)
 }
@@ -45,11 +43,7 @@ object SwaggerRouter : KoinComponent {
     private val jwtHelper: JWTHelper by inject()
 
     @Suppress("UNCHECKED_CAST")
-    fun addRoutesFromSwaggerFile(
-        router: Router,
-        swaggerFile: OpenAPI,
-        controllerPackage: String
-    ) {
+    fun addRoutesFromSwaggerFile(router: Router, swaggerFile: OpenAPI, controllerPackage: String) {
         val swaggerCache = ResolverCache(swaggerFile, null, null)
 
         val controllerInstances = mutableMapOf<String, Any>()
@@ -67,9 +61,7 @@ object SwaggerRouter : KoinComponent {
                         val roles = op.extensions?.get("x-auth-roles") as? Map<String, List<String>>
 
                         val controller = controllerInstances.getOrElse(controllerName, {
-                            val kclass = Class
-                                .forName("${controllerPackage}.$controllerName")
-                                .kotlin
+                            val kclass = Class.forName("${controllerPackage}.$controllerName").kotlin
                             val inst = get().koin.get<Any>(kclass, null, null)
                             controllerInstances[controllerName] = inst
                             inst
@@ -79,33 +71,18 @@ object SwaggerRouter : KoinComponent {
                             ?: throw RuntimeException("Method $methodName not found for controller $controllerName")
 
                         val route = router.route(HttpMethod.valueOf(verb.name), convertedPath)
-                        if (roles?.isNotEmpty() == true) {
-                            route.handler { context ->
-                                val token = context.getCookie("identityToken")
-                                if (token != null && token.value != null)
-                                    context.request().headers().set("authorization", "Bearer ${token.value}")
-                                context.next()
-                            }.handler(JWTAuthHandler.create(jwtHelper.authProvider))
-                        }
-                        route.handler(
-                            OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
-                        )
+                        if (roles?.isNotEmpty() == true)
+                            route.handler(JWTAuthHandler.create(jwtHelper.authProvider))
+                        route.handler(OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache))
                         route.handler { context -> routeHandler(context, controller, method, op.parameters, roles, opId) }
-                            .failureHandler { replyWithError(it, it.failure()) }
+                             .failureHandler { replyWithError(it, it.failure()) }
                     }
                 }
             }
         }
     }
 
-    private fun routeHandler(
-        context: RoutingContext,
-        controller: Any,
-        method: KCallable<*>,
-        params: List<Parameter>?,
-        roles: RequiredRoles?,
-        opId: String
-    ) {
+    private fun routeHandler(context: RoutingContext, controller: Any, method: KCallable<*>, params: List<Parameter>?, roles: RequiredRoles?, opId: String) {
         if (roles?.isNotEmpty() == true)
             jwtHelper.authenticateUser(roles, context.user().principal())
 
@@ -116,44 +93,27 @@ object SwaggerRouter : KoinComponent {
                     method.callWithParams(controller, context, params)
                 }
             } catch (ex: TimeoutCancellationException) {
-                replyWithError(context, TimeoutException("Timed out waiting for response", jArr(opId), ex)
-                )
+                replyWithError(context, TimeoutException("Timed out waiting for response", jArr(opId), ex))
             } catch (ex: Exception) {
                 replyWithError(context, ex)
             }
         }
     }
 
-    private fun replyWithError(context: RoutingContext, failure: Throwable?) {
+    private fun replyWithError(context: RoutingContext, failure: Throwable) {
         val response = context.response()
-        if (failure == null) {
-            if (context.statusCode() <= 0)
-                response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end()
-            else
-                response.setStatusCode(context.statusCode()).end()
-            return
-        } else if (failure is ResponseCodeException) {
-            response
-                .putHeader("content-type", "application/json")
-                .setStatusCode(failure.statusCode.value())
-                .end(failure.asJson().encode())
+        if (failure is ResponseCodeException) {
+            response.putHeader("content-type", "application/json")
+            response.setStatusCode(failure.statusCode.value()).end(failure.asJson().encode())
         } else if (context.statusCode() <= 0) {
-            response
-                .setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value())
-                .end(failure.message ?: "")
+            response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end(failure.message ?: "")
         } else {
-            response
-                .setStatusCode(context.statusCode())
-                .end(failure.message ?: "")
+            response.setStatusCode(context.statusCode()).end(failure.message ?: "")
         }
         failure.printStackTrace()
     }
 
-    suspend private fun KCallable<*>.callWithParams(
-        instance: Any?,
-        context: RoutingContext,
-        swaggerParams: List<Parameter>?
-    ) {
+    suspend private fun KCallable<*>.callWithParams(instance: Any?, context: RoutingContext, swaggerParams: List<Parameter>?) {
         try {
             val params: MutableMap<KParameter, Any?> = mutableMapOf()
             this.instanceParameter?.let { params.put(it, instance) }
@@ -188,7 +148,6 @@ object SwaggerRouter : KoinComponent {
                     if (params[param] == null && !param.isOptional)
                         params[param] = null
                 }
-
             }
             handleResponse(context, callSuspendBy(params))
         } catch (e: Exception) {
