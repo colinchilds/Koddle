@@ -57,10 +57,10 @@ object SwaggerRouter : KoinComponent {
             swaggerFile.paths.forEach { (path, pathItem) ->
                 launch {
                     val convertedPath = path.replace('{', ':').replace("}", "")
-                    pathItem.readOperationsMap().forEach { (verb, op) ->
+                    pathItem.readOperationsMap().filter { (verb, op) -> op.operationId != null }.forEach { (verb, op) ->
                         val opId = op.operationId ?: ""
                         val split = opId.split('.')
-                        if (split.size < 2)
+                        if (opId.isNotEmpty() && split.size < 2)
                             throw RuntimeException("Unable to parse operation $opId for path $path")
                         val controllerName = split[0]
                         val methodName = split[1]
@@ -126,27 +126,22 @@ object SwaggerRouter : KoinComponent {
 
     private fun replyWithError(context: RoutingContext, failure: Throwable?) {
         val response = context.response()
-        if (failure == null) {
-            if (context.statusCode() <= 0)
-                response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end()
-            else
-                response.setStatusCode(context.statusCode()).end()
-            return
-        } else if (failure is ResponseCodeException) {
-            response
-                .putHeader("content-type", "application/json")
-                .setStatusCode(failure.statusCode.value())
-                .end(failure.asJson().encode())
-        } else if (context.statusCode() <= 0) {
-            response
-                .setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value())
-                .end(failure.message ?: "")
-        } else {
-            response
-                .setStatusCode(context.statusCode())
-                .end(failure.message ?: "")
+        when {
+            failure == null -> {
+                if (context.statusCode() <= 0)
+                    response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end()
+                else
+                    response.setStatusCode(context.statusCode()).end()
+                return
+            }
+            failure is ResponseCodeException -> {
+                response.putHeader("content-type", "application/json")
+                    .setStatusCode(failure.statusCode.value())
+                    .end(failure.asJson().encode())
+            }
+            context.statusCode() <= 0 -> response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end(failure.message ?: "")
+            else -> response.setStatusCode(context.statusCode()).end(failure.message ?: "")
         }
-        failure.printStackTrace()
     }
 
     suspend private fun KCallable<*>.callWithParams(

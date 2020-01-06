@@ -10,7 +10,7 @@ repositories {
 group = "me.koddle"
 version = "1.0-SNAPSHOT"
 
-val vertxVersion = "3.8.1"
+val vertxVersion = "3.8.4"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -43,9 +43,9 @@ dependencies {
 
 tasks {
     compileKotlin {
-        kotlinOptions.jvmTarget = "1.8"
+        kotlinOptions.jvmTarget = "11"
     }
     compileTestKotlin {
-        kotlinOptions.jvmTarget = "1.8"
+        kotlinOptions.jvmTarget = "11"
     }
 }

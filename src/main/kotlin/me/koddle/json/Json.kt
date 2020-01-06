@@ -33,6 +33,13 @@ operator fun JsonObject.minus(keys: Collection<String>): JsonObject =
         keys.forEach { remove(it) }
     }
 
+fun JsonObject.merge(other: JsonObject, removeNulls: Boolean): JsonObject {
+    this.mergeIn(other)
+    if (removeNulls)
+        other.forEach { (key, value) -> if (value == null) this.remove(key) }
+    return this
+}
+
 operator fun JsonArray.plus(other: JsonArray): JsonArray =
     copy().addAll(other)
 
