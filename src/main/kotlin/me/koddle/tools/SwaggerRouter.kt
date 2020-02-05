@@ -1,11 +1,5 @@
 package me.koddle.tools
 
-import me.koddle.annotations.Body
-import me.koddle.annotations.Timeout
-import me.koddle.exceptions.HTTPStatusCode
-import me.koddle.exceptions.ResponseCodeException
-import me.koddle.exceptions.TimeoutException
-import me.koddle.json.jArr
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.parameters.Parameter
 import io.swagger.v3.parser.ResolverCache
@@ -17,11 +11,16 @@ import io.vertx.ext.web.Router
 import io.vertx.ext.web.RoutingContext
 import io.vertx.ext.web.api.contract.openapi3.impl.OpenAPI3RequestValidationHandlerImpl
 import io.vertx.ext.web.handler.BodyHandler
-import io.vertx.ext.web.handler.JWTAuthHandler
 import kotlinx.coroutines.*
+import me.koddle.annotations.Body
+import me.koddle.annotations.Timeout
+import me.koddle.exceptions.HTTPStatusCode
+import me.koddle.exceptions.ResponseCodeException
+import me.koddle.exceptions.TimeoutException
+import me.koddle.json.jArr
+import me.koddle.security.AuthManager
 import org.koin.core.KoinComponent
 import org.koin.core.context.GlobalContext.get
-import org.koin.core.inject
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KCallable
@@ -32,23 +31,25 @@ import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 
-fun Router.route(swaggerFile: OpenAPI, controllerPackage: String) {
+class SwaggerRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().setBodyLimit(5120000),
+                           val authManager: AuthManager?)
+
+fun Router.route(swaggerFile: OpenAPI, controllerPackage: String, options: SwaggerRouterOptions) {
     route()
         .produces("application/json")
-        .handler(BodyHandler.create().setBodyLimit(5120000))
+        .handler(options.bodyHandler)
 
-    SwaggerRouter.addRoutesFromSwaggerFile(this, swaggerFile, controllerPackage)
+    SwaggerRouter.addRoutesFromSwaggerFile(this, swaggerFile, controllerPackage, options)
 }
 
 object SwaggerRouter : KoinComponent {
-
-    private val jwtHelper: JWTHelper by inject()
 
     @Suppress("UNCHECKED_CAST")
     fun addRoutesFromSwaggerFile(
         router: Router,
         swaggerFile: OpenAPI,
-        controllerPackage: String
+        controllerPackage: String,
+        options: SwaggerRouterOptions
     ) {
         val swaggerCache = ResolverCache(swaggerFile, null, null)
 
@@ -79,18 +80,13 @@ object SwaggerRouter : KoinComponent {
                             ?: throw RuntimeException("Method $methodName not found for controller $controllerName")
 
                         val route = router.route(HttpMethod.valueOf(verb.name), convertedPath)
-                        if (roles?.isNotEmpty() == true) {
-                            route.handler { context ->
-                                val token = context.getCookie("identityToken")
-                                if (token != null && token.value != null)
-                                    context.request().headers().set("authorization", "Bearer ${token.value}")
-                                context.next()
-                            }.handler(JWTAuthHandler.create(jwtHelper.authProvider))
+                        if (roles?.isNotEmpty() == true && options.authManager != null) {
+                            options.authManager.addAuthHandlers(route, roles)
                         }
                         route.handler(
                             OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
                         )
-                        route.handler { context -> routeHandler(context, controller, method, op.parameters, roles, opId) }
+                        route.handler { context -> routeHandler(context, controller, method, op.parameters, opId) }
                             .failureHandler { replyWithError(it, it.failure()) }
                     }
                 }
@@ -103,12 +99,8 @@ object SwaggerRouter : KoinComponent {
         controller: Any,
         method: KCallable<*>,
         params: List<Parameter>?,
-        roles: RequiredRoles?,
         opId: String
     ) {
-        if (roles?.isNotEmpty() == true)
-            jwtHelper.authenticateUser(roles, context.user().principal())
-
         GlobalScope.launch {
             try {
                 val timeout = method.findAnnotation<Timeout>()?.length ?: 30000
@@ -197,11 +189,11 @@ object SwaggerRouter : KoinComponent {
     }
 
     private fun parseParam(param: KParameter, value: String): Any {
-        return if (param.isSubclassOf(Int::class))
-            value.toInt()
-        else if (param.isSubclassOf(Boolean::class))
-            value.toBoolean()
-        else value
+        return when {
+            param.isSubclassOf(Int::class) -> value.toInt()
+            param.isSubclassOf(Boolean::class) -> value.toBoolean()
+            else -> value
+        }
     }
 
     private fun handleResponse(context: RoutingContext, response: Any?) {
