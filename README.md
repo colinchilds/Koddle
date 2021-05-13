@@ -1,10 +1,11 @@
 # Koddle
-Koddle is a simple framework built on top of vertx with Kotlin. It allows you to define your routes, validation,
-and authorization through Swagger documentation. It should allow for very quick creation of microservices with very little boilerplate.
+Koddle is a simple web framework built on top of [Vert.x](https://vertx.io/) with Kotlin. It allows you to define your routes, validation,
+and authorization through Swagger documentation. It should allow for very quick creation of microservices with very little boilerplate,
+and forces you to write good API docs in the process.
 See the [kotlin-vertx-template example repo](https://github.com/colinchilds/kotlin-vertx-template) for an idea of how to create a microservice using Koddle.
 
 ## Controllers
-Koddle uses Kotlin coroutines so your controller methods and DB calls should all suspend. Below is an example of a basic controller.
+Below is an example of a basic controller. Koddle uses Kotlin coroutines so your controller methods and DB calls should all suspend.
 
 ```kotlin
 class InventoryController(private val inventoryRepo: InventoryRepo) : BaseController() {
@@ -43,7 +44,7 @@ suspend fun post(@Body("username") username: String, @Body("password") password:
 
 Returning a JsonObject or JsonArray from a controller method will automatically set the content type to `application/json`.
 If you return something else, it will be converted to a String and returned as text. If you would like more control over the
-response, you can also return void and handle it yourself by injecting the request context:
+response, you can also return nothing and handle it yourself by injecting the request context:
 
 ```kotlin
 suspend fun post(context: RoutingContext, @Body body:JsonObject) {
