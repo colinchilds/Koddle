@@ -30,9 +30,11 @@ import kotlin.reflect.full.callSuspendBy
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
+import kotlin.system.exitProcess
 
 class SwaggerRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().setBodyLimit(5120000),
-                           val authManager: AuthManager?)
+                           val authManager: AuthManager? = null,
+                           val defaultRequestTimeout: Long = 30_000)
 
 fun Router.route(swaggerFile: OpenAPI, controllerPackage: String, options: SwaggerRouterOptions) {
     route()
@@ -58,36 +60,43 @@ object SwaggerRouter : KoinComponent {
             swaggerFile.paths.forEach { (path, pathItem) ->
                 launch {
                     val convertedPath = path.replace('{', ':').replace("}", "")
-                    pathItem.readOperationsMap().filter { (verb, op) -> op.operationId != null }.forEach { (verb, op) ->
-                        val opId = op.operationId ?: ""
-                        val split = opId.split('.')
-                        if (opId.isNotEmpty() && split.size < 2)
-                            throw RuntimeException("Unable to parse operation $opId for path $path")
-                        val controllerName = split[0]
-                        val methodName = split[1]
-                        val roles = op.extensions?.get("x-auth-roles") as? Map<String, List<String>>
+                    try {
+                        pathItem.readOperationsMap().filter { (verb, op) -> op.operationId != null }.forEach { (verb, op) ->
+                            val opId = op.operationId ?: ""
+                            val split = opId.split('.')
+                            if (opId.isNotEmpty() && split.size < 2)
+                                throw RuntimeException("Unable to parse operation $opId for path $path")
+                            val controllerName = split[0]
+                            val methodName = split[1]
+                            val roles = op.extensions?.get("x-auth-roles") as? Map<String, List<String>>
 
-                        val controller = controllerInstances.getOrElse(controllerName, {
-                            val kclass = Class
-                                .forName("${controllerPackage}.$controllerName")
-                                .kotlin
-                            val inst = get().koin.get<Any>(kclass, null, null)
-                            controllerInstances[controllerName] = inst
-                            inst
-                        })
+                            val controller = try { controllerInstances.getOrElse(controllerName, {
+                                    val kclass = Class
+                                        .forName("${controllerPackage}.$controllerName")
+                                        .kotlin
+                                    val inst = get().koin.get<Any>(kclass, null, null)
+                                    controllerInstances[controllerName] = inst
+                                    inst
+                            }) } catch (ex: ClassNotFoundException) {
+                                throw RuntimeException("Class ${ex.message} referenced in Swagger file not found ")
+                            }
 
-                        val method = controller::class.members.find { it.name == methodName }
-                            ?: throw RuntimeException("Method $methodName not found for controller $controllerName")
+                            val method = controller::class.members.find { it.name == methodName }
+                                ?: throw RuntimeException("Method $methodName not found for controller $controllerName")
 
-                        val route = router.route(HttpMethod.valueOf(verb.name), convertedPath)
-                        if (roles?.isNotEmpty() == true && options.authManager != null) {
-                            options.authManager.addAuthHandlers(route, roles)
+                            val route = router.route(HttpMethod.valueOf(verb.name), convertedPath)
+                            if (roles?.isNotEmpty() == true && options.authManager != null) {
+                                options.authManager.addAuthHandlers(route, roles)
+                            }
+                            route.handler(
+                                OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
+                            )
+                            route.handler { context -> routeHandler(context, controller, method, op.parameters, opId, options) }
+                                .failureHandler { replyWithError(it, it.failure()) }
                         }
-                        route.handler(
-                            OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
-                        )
-                        route.handler { context -> routeHandler(context, controller, method, op.parameters, opId) }
-                            .failureHandler { replyWithError(it, it.failure()) }
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                        exitProcess(1)
                     }
                 }
             }
@@ -99,11 +108,12 @@ object SwaggerRouter : KoinComponent {
         controller: Any,
         method: KCallable<*>,
         params: List<Parameter>?,
-        opId: String
+        opId: String,
+        options: SwaggerRouterOptions
     ) {
         GlobalScope.launch {
             try {
-                val timeout = method.findAnnotation<Timeout>()?.length ?: 30000
+                val timeout = method.findAnnotation<Timeout>()?.length ?: options.defaultRequestTimeout
                 withTimeout(timeout) {
                     method.callWithParams(controller, context, params)
                 }
@@ -131,8 +141,13 @@ object SwaggerRouter : KoinComponent {
                     .setStatusCode(failure.statusCode.value())
                     .end(failure.asJson().encode())
             }
-            context.statusCode() <= 0 -> response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end(failure.message ?: "")
-            else -> response.setStatusCode(context.statusCode()).end(failure.message ?: "")
+            context.statusCode() <= 0 -> {
+                failure.printStackTrace()
+                response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end("")
+            }
+            else -> {
+                response.setStatusCode(context.statusCode()).end(failure.message ?: "")
+            }
         }
     }
 
