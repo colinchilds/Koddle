@@ -37,5 +37,6 @@ gradle-app.setting
 # gradle/wrapper/gradle-wrapper.properties
 
 .idea
+*.iml
 
 src/main/resources/webroot

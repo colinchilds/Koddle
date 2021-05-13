@@ -21,7 +21,8 @@ class DatabaseAccess {
             user = config.getString("SERVICE_DB_USER"),
             password = config.getString("SERVICE_DB_PASSWORD"),
             properties = mapOf("search_path" to config.getString("schema", "public")))
-        val poolOptions = poolOptionsOf(maxSize = 10)
+        val poolOptions = poolOptionsOf(maxSize = config.getInteger("SERVICE_DB_MAX_SIZE"),
+            maxWaitQueueSize = config.getInteger("SERVICE_DB_MAX_SIZE"))
         pool = PgPool.pool(vertx, connectOptions, poolOptions)
     }
 
