@@ -2,7 +2,7 @@ package me.koddle.repositories
 
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
-import io.vertx.kotlin.sqlclient.preparedQueryAwait
+import io.vertx.kotlin.coroutines.await
 import io.vertx.sqlclient.Row
 import io.vertx.sqlclient.RowSet
 import io.vertx.sqlclient.SqlClient
@@ -81,8 +81,8 @@ abstract class Repository(val table: String, val schema: String) : KoinComponent
 
     private suspend fun queryWithSqlClient(sql: String, tuple: Tuple = Tuple.tuple(), conn: SqlClient?): RowSet<Row> {
         return when (conn) {
-            null -> da.getConnection { c -> c.preparedQueryAwait(sql, tuple) }
-            else -> conn.preparedQueryAwait(sql, tuple)
+            null -> da.getConnection { c -> c.preparedQuery(sql).execute(tuple).await() }
+            else -> conn.preparedQuery(sql).execute(tuple).await()
         }
     }
 }

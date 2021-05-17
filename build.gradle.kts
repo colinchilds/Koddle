@@ -10,11 +10,12 @@ repositories {
 group = "me.koddle"
 version = "1.0-SNAPSHOT"
 
-val vertxVersion = "3.8.4"
+val vertxVersion = "4.0.3"
+val kotlinVersion = "1.5.0"
 
 dependencies {
-    implementation(kotlin("stdlib"))
-    implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
 
     implementation("io.vertx:vertx-core:$vertxVersion")
     implementation("io.vertx:vertx-web:$vertxVersion")
@@ -35,9 +36,6 @@ dependencies {
     implementation("org.slf4j:slf4j-jdk14:1.7.28")
     implementation("io.vertx:vertx-web-client:$vertxVersion")
 
-    testImplementation("org.spekframework.spek2:spek-dsl-jvm:2.0.7")
-    testRuntimeOnly("org.spekframework.spek2:spek-runner-junit5:2.0.7")
-    testImplementation("org.amshove.kluent:kluent:1.54")
     implementation("org.apache.commons:commons-collections4:4.0")
 }
 

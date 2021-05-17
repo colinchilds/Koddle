@@ -1,14 +1,13 @@
 package me.koddle.tools
 
-import me.koddle.exceptions.ModelNotFoundException
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
-import io.vertx.core.shareddata.impl.ClusterSerializable
+import io.vertx.kotlin.coroutines.await
 import io.vertx.kotlin.pgclient.pgConnectOptionsOf
-import io.vertx.kotlin.sqlclient.getConnectionAwait
 import io.vertx.kotlin.sqlclient.poolOptionsOf
 import io.vertx.pgclient.PgPool
 import io.vertx.sqlclient.SqlClient
+import me.koddle.exceptions.ModelNotFoundException
 
 class DatabaseAccess {
     val pool: PgPool
@@ -22,13 +21,13 @@ class DatabaseAccess {
             password = config.getString("SERVICE_DB_PASSWORD"),
             properties = mapOf("search_path" to config.getString("schema", "public")))
         val poolOptions = poolOptionsOf(maxSize = config.getInteger("SERVICE_DB_MAX_SIZE"),
-            maxWaitQueueSize = config.getInteger("SERVICE_DB_MAX_SIZE"))
+            maxWaitQueueSize = config.getInteger("SERVICE_DB_MAX_QUEUE_SIZE"))
         pool = PgPool.pool(vertx, connectOptions, poolOptions)
     }
 
     suspend fun <T> getConnection(dbAction: suspend (SqlClient) -> T): T {
         var result: T
-        val connection = pool.getConnectionAwait()
+        val connection = pool.connection.await()
         try {
             result = dbAction.invoke(connection)
         } catch (ex: Exception) {
@@ -45,8 +44,8 @@ class DatabaseAccess {
 
     suspend fun <T> getTransaction(dbAction: suspend (SqlClient) -> T): T {
         var result: T
-        val connection = pool.getConnectionAwait()
-        val transaction = connection.begin()
+        val connection = pool.connection.await()
+        val transaction = connection.begin().await()
         try {
             result = dbAction.invoke(connection)
             transaction.commit()
