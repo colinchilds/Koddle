@@ -1,6 +1,6 @@
 # Koddle
 Koddle is a simple web framework built on top of [Vert.x](https://vertx.io/) with Kotlin. It allows you to define your routes, validation,
-and authorization through Swagger documentation. It should allow for very quick creation of microservices with very little boilerplate,
+and authorization through OpenAPI documentation. It should allow for very quick creation of microservices with very little boilerplate,
 and forces you to write good API docs in the process.
 See the [kotlin-vertx-template example repo](https://github.com/colinchilds/kotlin-vertx-template) for an idea of how to create a microservice using Koddle.
 
@@ -54,15 +54,15 @@ suspend fun post(context: RoutingContext, @Body body:JsonObject) {
 }
 ```
 
-By default, all controller methods will time out after 30 seconds. You can override this value in the `SwaggerRouterOptions`. Occasionally, you may have a long running endpoint,
+By default, all controller methods will time out after 30 seconds. You can override this value in the `OpenAPIRouterOptions`. Occasionally, you may have a long running endpoint,
 so you can override this behavior with a `@Timeout` annotation:
 ```kotlin
 @Timeout(60_000)
 suspend fun myLongHandler(): ClusterSerializable
 ```
 
-## Swagger
-Defining the above controller routes can be done by simply putting the controller class and method name as the `operationId` of your swagger path:
+## OpenAPI
+Defining the above controller routes can be done by simply putting the controller class and method name as the `operationId` in your path:
 
 ```yaml
 paths:
@@ -94,5 +94,5 @@ x-auth-roles:
   anyOf:
     - ADMIN
 ```
-You will need to provide an implementation of an `AuthManager` to your `SwaggerRouterOptions` that validates the user.
+You will need to provide an implementation of an `AuthManager` to your `OpenAPIRouterOptions` that validates the user.
 An example of how this is done can be seen in the example repository [PubSecJWTManager]((https://github.com/colinchilds/kotlin-vertx-template/blob/master/src/test/kotlin/dev/cchilds/security/PubSecJWTManager.kt)).

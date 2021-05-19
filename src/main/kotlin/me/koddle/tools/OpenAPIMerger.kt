@@ -8,28 +8,28 @@ import org.apache.commons.collections4.ListUtils
 import org.reflections.Reflections
 import org.reflections.scanners.ResourcesScanner
 
-object SwaggerMerger {
+object OpenAPIMerger {
     @Synchronized fun mergeAllInDirectory(path: String): OpenAPI? {
         val reflections = Reflections(path, ResourcesScanner())
         val resourceList = reflections.getResources { it != null && it.endsWith(".yaml") }
         var merged: OpenAPI? = null
 
         resourceList.forEach {
-            val swagger = loadSwagger("/$it")
+            val file = loadFile("/$it")
             if (merged == null)
-                merged = swagger
+                merged = file
             else
-                mergeSwagger(merged!!, swagger)
+                mergeFile(merged!!, file)
         }
 
         return merged
     }
 
-    private fun loadSwagger(filename: String): OpenAPI {
+    private fun loadFile(filename: String): OpenAPI {
         return OpenAPIV3Parser().readLocation(filename, null, OpenApi3Utils.getParseOptions()).openAPI
     }
 
-    private fun mergeSwagger(merged: OpenAPI, new: OpenAPI) {
+    private fun mergeFile(merged: OpenAPI, new: OpenAPI) {
         merged.servers = combineLists(merged.servers, new.servers)
         merged.security = combineLists(merged.security, new.security)
         merged.tags = combineLists(merged.tags, new.tags)

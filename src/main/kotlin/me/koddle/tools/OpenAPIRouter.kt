@@ -33,32 +33,32 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.system.exitProcess
 
-class SwaggerRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().setBodyLimit(5120000),
+class OpenAPIRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().setBodyLimit(5120000),
                            val authManager: AuthManager? = null,
                            val defaultRequestTimeout: Long = 30_000)
 
-fun Router.route(swaggerFile: OpenAPI, controllerPackage: String, options: SwaggerRouterOptions) {
+fun Router.route(openApiFile: OpenAPI, controllerPackage: String, options: OpenAPIRouterOptions) {
     route()
         .produces("application/json")
         .handler(options.bodyHandler)
 
-    SwaggerRouter.addRoutesFromSwaggerFile(this, swaggerFile, controllerPackage, options)
+    OpenAPIRouter.addRoutesFromOpenAPIFile(this, openApiFile, controllerPackage, options)
 }
 
-object SwaggerRouter : KoinComponent {
+object OpenAPIRouter : KoinComponent {
 
     @Suppress("UNCHECKED_CAST")
-    fun addRoutesFromSwaggerFile(
+    fun addRoutesFromOpenAPIFile(
         router: Router,
-        swaggerFile: OpenAPI,
+        openApiFile: OpenAPI,
         controllerPackage: String,
-        options: SwaggerRouterOptions
+        options: OpenAPIRouterOptions
     ) {
-        val swaggerCache = ResolverCache(swaggerFile, null, null)
+        val openApiCache = ResolverCache(openApiFile, null, null)
 
         val controllerInstances = mutableMapOf<String, Any>()
         runBlocking {
-            swaggerFile.paths.forEach { (path, pathItem) ->
+            openApiFile.paths.forEach { (path, pathItem) ->
                 launch {
                     val convertedPath = path.replace('{', ':').replace("}", "")
                     try {
@@ -81,7 +81,7 @@ object SwaggerRouter : KoinComponent {
                                     inst
                                 }
                             } catch (ex: ClassNotFoundException) {
-                                throw RuntimeException("Class ${ex.message} referenced in Swagger file not found ")
+                                throw RuntimeException("Class ${ex.message} referenced in OpenAPI file not found ")
                             }
 
                             val method = controller::class.members.find { it.name == methodName }
@@ -92,7 +92,7 @@ object SwaggerRouter : KoinComponent {
                                 options.authManager.addAuthHandlers(route, roles)
                             }
                             route.handler(
-                                OpenAPI3RequestValidationHandlerImpl(op, op.parameters, swaggerFile, swaggerCache)
+                                OpenAPI3RequestValidationHandlerImpl(op, op.parameters, openApiFile, openApiCache)
                             )
                             route.handler { context -> routeHandler(context, controller, method, op.parameters, opId, options) }
                                 .failureHandler { replyWithError(it, it.failure()) }
@@ -112,7 +112,7 @@ object SwaggerRouter : KoinComponent {
         method: KCallable<*>,
         params: List<Parameter>?,
         opId: String,
-        options: SwaggerRouterOptions
+        options: OpenAPIRouterOptions
     ) {
         GlobalScope.launch {
             try {
@@ -157,7 +157,7 @@ object SwaggerRouter : KoinComponent {
     private suspend fun KCallable<*>.callWithParams(
         instance: Any?,
         context: RoutingContext,
-        swaggerParams: List<Parameter>?
+        openAPIParams: List<Parameter>?
     ) {
         try {
             val params: MutableMap<KParameter, Any?> = mutableMapOf()
@@ -177,7 +177,7 @@ object SwaggerRouter : KoinComponent {
                         params[param] = context.bodyAsString
                     }
                 } else if (param.kind != KParameter.Kind.INSTANCE) {
-                    swaggerParams?.find { it.name == param.name }?.let { sp ->
+                    openAPIParams?.find { it.name == param.name }?.let { sp ->
                         when (sp.`in`) {
                             "path" -> params[param] =
                                 parseParam(param, context.pathParam(param.name))
