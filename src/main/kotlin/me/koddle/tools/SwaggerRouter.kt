@@ -26,6 +26,7 @@ import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
+import kotlin.reflect.KType
 import kotlin.reflect.full.callSuspendBy
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
@@ -61,7 +62,7 @@ object SwaggerRouter : KoinComponent {
                 launch {
                     val convertedPath = path.replace('{', ':').replace("}", "")
                     try {
-                        pathItem.readOperationsMap().filter { (verb, op) -> op.operationId != null }.forEach { (verb, op) ->
+                        pathItem.readOperationsMap().filter { (_, op) -> op.operationId != null }.forEach { (verb, op) ->
                             val opId = op.operationId ?: ""
                             val split = opId.split('.')
                             if (opId.isNotEmpty() && split.size < 2)
@@ -70,14 +71,16 @@ object SwaggerRouter : KoinComponent {
                             val methodName = split[1]
                             val roles = op.extensions?.get("x-auth-roles") as? Map<String, List<String>>
 
-                            val controller = try { controllerInstances.getOrElse(controllerName, {
+                            val controller = try {
+                                controllerInstances.getOrElse(controllerName) {
                                     val kclass = Class
                                         .forName("${controllerPackage}.$controllerName")
                                         .kotlin
                                     val inst = get().koin.get<Any>(kclass, null, null)
                                     controllerInstances[controllerName] = inst
                                     inst
-                            }) } catch (ex: ClassNotFoundException) {
+                                }
+                            } catch (ex: ClassNotFoundException) {
                                 throw RuntimeException("Class ${ex.message} referenced in Swagger file not found ")
                             }
 
@@ -151,7 +154,7 @@ object SwaggerRouter : KoinComponent {
         }
     }
 
-    suspend private fun KCallable<*>.callWithParams(
+    private suspend fun KCallable<*>.callWithParams(
         instance: Any?,
         context: RoutingContext,
         swaggerParams: List<Parameter>?
@@ -236,9 +239,11 @@ object SwaggerRouter : KoinComponent {
         }
     }
 
+    private val annotationsMap = mutableMapOf<KAnnotatedElement, Any?>()
     private inline fun <reified T : Annotation> KAnnotatedElement.findAnnotation() =
-        annotations.find { it is T } as? T
+        annotationsMap.getOrPut(this) { annotations.find { it is T } } as? T
 
-    private fun KParameter.isSubclassOf(clazz: KClass<*>): Boolean =
-        type.jvmErasure.isSubclassOf(clazz)
+    private val subclassMap = mutableMapOf<Pair<KType, KClass<*>>, Boolean>()
+    private fun KParameter.isSubclassOf(clazz: KClass<*>) =
+        subclassMap.getOrPut(Pair(type, clazz)) { type.jvmErasure.isSubclassOf(clazz) }
 }
