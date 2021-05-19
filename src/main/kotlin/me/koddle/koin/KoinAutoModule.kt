@@ -1,9 +1,13 @@
 @file:Suppress("unused")
 
-package me.koddle.service
+package me.koddle.koin
 
 import com.google.common.reflect.ClassPath
-import org.koin.core.definition.*
+import org.koin.core.definition.BeanDefinition
+import org.koin.core.definition.Definition
+import org.koin.core.definition.DefinitionFactory
+import org.koin.core.definition.Kind
+import org.koin.core.definition.Options
 import org.koin.core.module.Module
 import org.koin.core.qualifier.Qualifier
 import org.koin.core.scope.Scope
@@ -12,8 +16,8 @@ import org.koin.experimental.builder.getArguments
 import org.koin.experimental.builder.getFirstJavaConstructor
 import kotlin.reflect.KClass
 
-fun buildAutoModule(verticle: Class<*>): Module {
-    val classes = getProjectClasses(verticle)
+fun buildModulesForPackage(pkg: String): Module {
+    val classes = getPackageClasses(pkg)
     return module {
         for (kclass in classes) {
             single(kclass) { create(kclass, this) }
@@ -22,10 +26,9 @@ fun buildAutoModule(verticle: Class<*>): Module {
 }
 
 @Suppress("UnstableApiUsage")
-fun getProjectClasses(verticle: Class<*>): List<KClass<*>> {
-    val pkg = verticle.`package`.name.substringBeforeLast('.')
+fun getPackageClasses(pkg: String): List<KClass<*>> {
     return ClassPath
-        .from(verticle.classLoader)
+        .from(ClassLoader.getSystemClassLoader())
         .getTopLevelClassesRecursive(pkg)
         .map { Class.forName(it.name).kotlin }
         .toList()

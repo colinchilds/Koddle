@@ -19,22 +19,20 @@ dependencies {
 
     implementation("io.vertx:vertx-core:$vertxVersion")
     implementation("io.vertx:vertx-web:$vertxVersion")
+    implementation("io.vertx:vertx-web-client:$vertxVersion")
     implementation("io.vertx:vertx-web-api-contract:$vertxVersion")
     implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
     implementation("io.vertx:vertx-unit:$vertxVersion")
     implementation("io.vertx:vertx-lang-kotlin:$vertxVersion")
     implementation("io.vertx:vertx-pg-client:$vertxVersion")
     implementation("io.vertx:vertx-config:$vertxVersion")
-    implementation("io.vertx:vertx-auth-jwt:$vertxVersion")
-    implementation("org.flywaydb:flyway-core:6.0.0")
-    implementation("postgresql:postgresql:9.1-901-1.jdbc4")
+    implementation("org.postgresql:postgresql:42.2.20")
     implementation("org.koin:koin-core:2.0.1")
     implementation("org.koin:koin-core-ext:2.0.1")
     implementation("com.google.guava:guava:28.1-jre")
 
     implementation("org.reflections:reflections:0.9.11")
     implementation("org.slf4j:slf4j-jdk14:1.7.28")
-    implementation("io.vertx:vertx-web-client:$vertxVersion")
 
     implementation("org.apache.commons:commons-collections4:4.0")
 }
