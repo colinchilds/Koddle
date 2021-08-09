@@ -137,6 +137,9 @@ object OpenAPIRouter {
                 return
             }
             failure is ResponseCodeException -> {
+                if (failure.statusCode.value() >= 500) {
+                    failure.printStackTrace()
+                }
                 response.putHeader("content-type", "application/json")
                     .setStatusCode(failure.statusCode.value())
                     .end(failure.asJson().encode())
@@ -146,6 +149,7 @@ object OpenAPIRouter {
                 response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end("")
             }
             else -> {
+                failure.printStackTrace()
                 response.setStatusCode(context.statusCode()).end(failure.message ?: "")
             }
         }
