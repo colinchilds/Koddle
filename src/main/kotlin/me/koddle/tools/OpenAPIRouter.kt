@@ -19,8 +19,6 @@ import me.koddle.exceptions.ResponseCodeException
 import me.koddle.exceptions.TimeoutException
 import me.koddle.json.jArr
 import me.koddle.security.AuthManager
-import org.koin.core.KoinComponent
-import org.koin.core.context.GlobalContext.get
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.KAnnotatedElement
 import kotlin.reflect.KCallable
@@ -37,21 +35,21 @@ class OpenAPIRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().
                            val authManager: AuthManager? = null,
                            val defaultRequestTimeout: Long = 30_000)
 
-fun Router.route(openApiFile: OpenAPI, controllerPackage: String, options: OpenAPIRouterOptions) {
+fun Router.route(openApiFile: OpenAPI, controllerLookup: (controllerName: String) -> Any?, options: OpenAPIRouterOptions) {
     route()
         .produces("application/json")
         .handler(options.bodyHandler)
 
-    OpenAPIRouter.addRoutesFromOpenAPIFile(this, openApiFile, controllerPackage, options)
+    OpenAPIRouter.addRoutesFromOpenAPIFile(this, openApiFile, controllerLookup, options)
 }
 
-object OpenAPIRouter : KoinComponent {
+object OpenAPIRouter {
 
     @Suppress("UNCHECKED_CAST")
     fun addRoutesFromOpenAPIFile(
         router: Router,
         openApiFile: OpenAPI,
-        controllerPackage: String,
+        controllerLookup: (controllerName: String) -> Any?,
         options: OpenAPIRouterOptions
     ) {
         val openApiCache = ResolverCache(openApiFile, null, null)
@@ -73,10 +71,9 @@ object OpenAPIRouter : KoinComponent {
 
                             val controller = try {
                                 controllerInstances.getOrElse(controllerName) {
-                                    val kclass = Class
-                                        .forName("${controllerPackage}.$controllerName")
-                                        .kotlin
-                                    val inst = get().koin.get<Any>(kclass, null, null)
+                                    val inst = controllerLookup(controllerName)
+                                        ?: throw RuntimeException("Instance of class $controllerName referenced in OpenAPI" +
+                                                "file could not be found")
                                     controllerInstances[controllerName] = inst
                                     inst
                                 }

@@ -11,13 +11,8 @@ import me.koddle.exceptions.ModelNotFoundException
 import me.koddle.json.jArr
 import me.koddle.json.jObj
 import me.koddle.tools.DatabaseAccess
-import org.koin.core.KoinComponent
-import org.koin.core.get
 
-
-abstract class Repository(val table: String) : KoinComponent {
-
-    private val da: DatabaseAccess = get()
+abstract class Repository(val table: String, val da: DatabaseAccess) {
 
     suspend fun all(connection: SqlClient? = null): JsonArray {
         return query("SELECT * FROM $table", conn = connection)

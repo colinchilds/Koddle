@@ -33,9 +33,9 @@ class InventoryController(private val inventoryRepo: InventoryRepo) : BaseContro
 }
 ```
 
-Controllers utilize dependency injection. Simply declare your dependencies, such as database classes, and they will be injected into the controller.
-Similarly, path and query parameters, as well as the request body can just be declared in the method signature and they
-will be passed in automatically. The body parameter must be annotated with the `@Body` annotation, or if you would like
+Path and query parameters will be automatically passed into your function, matched on the name with what is defined in your docs.
+The request body can just be declared in the method signature and it will be passed in automatically.
+The body parameter must be annotated with the `@Body` annotation, or if you would like
 a specific value from the body, you can pull it out like this:
 
 ```kotlin
@@ -60,6 +60,35 @@ so you can override this behavior with a `@Timeout` annotation:
 @Timeout(60_000)
 suspend fun myLongHandler(): ClusterSerializable
 ```
+
+Configuring your swagger router requires 3 parameters - an OpenAPI file, a function for looking up controller instances, and a class for configuration options.
+Here's an example of what that might look like if you're using a dependency injection framework like Koin:
+```kotlin
+private fun configureRouter(pkg: String, jwtManager: AuthManager): Router {
+    val mainRouter = Router.router(vertx)
+    val openAPIFile = OpenAPIMerger.mergeAllInDirectory("swagger") ?: throw RuntimeException("Unable to process Swagger file")
+
+    val apiRouter = Router.router(vertx)
+
+    apiRouter.route(openAPIFile, controllerInstanceLookup(pkg), OpenAPIRouterOptions(authManager = jwtManager))
+    mainRouter.mountSubRouter("/api", apiRouter)
+
+    return mainRouter
+}
+
+private fun controllerInstanceLookup(pkg: String): (String) -> Any? {
+    return { controllerName: String ->
+        val kclass = Class
+            .forName("$pkg.controllers.$controllerName")
+            .kotlin
+        get().get<Any>(kclass, null, null)
+    }
+}
+```
+Notice how we've mounted the configured router as a subrouter under `/api`. This means all our endpoints exist under `/api`
+so `/inventory` becomes `/api/inventory`. Note that when writing paths in your docs for a router mounted as a subrouter, you do
+not include the subrouter path in your docs path. In the above example, you would still have a path of `/inventory` in your docs,
+rather than `/api/inventory`.
 
 ## OpenAPI
 Defining the above controller routes can be done by simply putting the controller class and method name as the `operationId` in your path:
@@ -96,3 +125,11 @@ x-auth-roles:
 ```
 You will need to provide an implementation of an `AuthManager` to your `OpenAPIRouterOptions` that validates the user.
 An example of how this is done can be seen in the example repository [PubSecJWTManager]((https://github.com/colinchilds/kotlin-vertx-template/blob/master/src/test/kotlin/dev/cchilds/security/PubSecJWTManager.kt)).
+
+### Multiple OpenAPI files
+If you would like to split your documentation (by controller, for example), you can use the provided `OpenAPIMerger` tool to combine
+your docs into a single file that can then be used by the router. For example, if you had multiple Swagger files under the `swagger` directory,
+you could merge them all like this:
+```kotlin
+val openAPIFile = OpenAPIMerger.mergeAllInDirectory("swagger")
+```

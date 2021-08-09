@@ -10,7 +10,7 @@ repositories {
 group = "me.koddle"
 version = "1.0-SNAPSHOT"
 
-val vertxVersion = "4.0.3"
+val vertxVersion = "4.1.2"
 val kotlinVersion = "1.5.0"
 
 dependencies {
@@ -26,13 +26,11 @@ dependencies {
     implementation("io.vertx:vertx-lang-kotlin:$vertxVersion")
     implementation("io.vertx:vertx-pg-client:$vertxVersion")
     implementation("io.vertx:vertx-config:$vertxVersion")
-    implementation("org.postgresql:postgresql:42.2.20")
-    implementation("org.koin:koin-core:2.0.1")
-    implementation("org.koin:koin-core-ext:2.0.1")
+    implementation("org.postgresql:postgresql:42.2.22")
     implementation("com.google.guava:guava:28.1-jre")
 
     implementation("org.reflections:reflections:0.9.11")
-    implementation("org.slf4j:slf4j-jdk14:1.7.28")
+    implementation("org.slf4j:slf4j-jdk14:1.7.32")
 
     implementation("org.apache.commons:commons-collections4:4.0")
 }
