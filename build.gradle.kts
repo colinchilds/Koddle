@@ -27,10 +27,8 @@ dependencies {
     implementation("io.vertx:vertx-pg-client:$vertxVersion")
     implementation("io.vertx:vertx-config:$vertxVersion")
     implementation("org.postgresql:postgresql:42.2.22")
-    implementation("com.google.guava:guava:28.1-jre")
 
     implementation("org.reflections:reflections:0.9.11")
-    implementation("org.slf4j:slf4j-jdk14:1.7.32")
 
     implementation("org.apache.commons:commons-collections4:4.0")
 }

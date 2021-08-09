@@ -19,12 +19,9 @@ import me.koddle.exceptions.ResponseCodeException
 import me.koddle.exceptions.TimeoutException
 import me.koddle.json.jArr
 import me.koddle.security.AuthManager
+import org.slf4j.LoggerFactory
 import java.lang.reflect.InvocationTargetException
-import kotlin.reflect.KAnnotatedElement
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KParameter
-import kotlin.reflect.KType
+import kotlin.reflect.*
 import kotlin.reflect.full.callSuspendBy
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSubclassOf
@@ -34,6 +31,8 @@ import kotlin.system.exitProcess
 class OpenAPIRouterOptions(val bodyHandler: BodyHandler? = BodyHandler.create().setBodyLimit(5120000),
                            val authManager: AuthManager? = null,
                            val defaultRequestTimeout: Long = 30_000)
+
+private val LOGGER = LoggerFactory.getLogger(OpenAPIRouter::class.java)
 
 fun Router.route(openApiFile: OpenAPI, controllerLookup: (controllerName: String) -> Any?, options: OpenAPIRouterOptions) {
     route()
@@ -95,7 +94,7 @@ object OpenAPIRouter {
                                 .failureHandler { replyWithError(it, it.failure()) }
                         }
                     } catch (ex: Exception) {
-                        ex.printStackTrace()
+                        LOGGER.info("Unable to load router", ex)
                         exitProcess(1)
                     }
                 }
@@ -138,18 +137,18 @@ object OpenAPIRouter {
             }
             failure is ResponseCodeException -> {
                 if (failure.statusCode.value() >= 500) {
-                    failure.printStackTrace()
+                    LOGGER.error("Server Error", failure)
                 }
                 response.putHeader("content-type", "application/json")
                     .setStatusCode(failure.statusCode.value())
                     .end(failure.asJson().encode())
             }
             context.statusCode() <= 0 -> {
-                failure.printStackTrace()
+                LOGGER.error("Server Error", failure)
                 response.setStatusCode(HTTPStatusCode.INTERNAL_ERROR.value()).end("")
             }
             else -> {
-                failure.printStackTrace()
+                LOGGER.error("Server Error", failure)
                 response.setStatusCode(context.statusCode()).end(failure.message ?: "")
             }
         }
